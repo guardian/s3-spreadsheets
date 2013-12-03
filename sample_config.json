@@ -1,0 +1,9 @@
+{
+    "spreadsheetKeys" : "xxxx,xxxx",
+    "callbackName"    : "sampleCallbackName",
+    "accessKey"       : "",
+    "secretKey"       : "",
+    "bucket"          : "your-bucket-name",
+    "destFolder"      : "/your/destination/path/",
+    "cacheAge"        : "60"
+}
