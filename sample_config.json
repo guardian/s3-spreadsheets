@@ -1,9 +1,18 @@
 {
-    "spreadsheetKeys" : "xxxx,xxxx",
+    "spreadsheets"  : [
+        {
+            "key": "xxxx",
+            "cacheAge": "120"
+        },
+        {
+            "key": "xxxx",
+            "cacheAge": "60"
+        }
+    ],
     "callbackName"    : "sampleCallbackName",
     "accessKey"       : "",
     "secretKey"       : "",
     "bucket"          : "your-bucket-name",
-    "destFolder"      : "/your/destination/path/",
-    "cacheAge"        : "60"
+    "region"          : "eu-west-1",
+    "destFolder"      : "/your/destination/path/"
 }

@@ -3,12 +3,11 @@ var knox = require('knox');
 var Tabletop = require('tabletop');
 
 var callbackCounter = 0;
-var gsKeys = config.spreadsheetKeys.split(',');
-gsKeys.map(function(key) {
-    fetchSpreadsheet(key.trim());
-});
+var spreadsheets = config.spreadsheets;
+spreadsheets.map(fetchSpreadsheet);
 
-function fetchSpreadsheet(spreadsheetKey) {
+function fetchSpreadsheet(spreadsheet) {
+    var spreadsheetKey = spreadsheet.key.trim();
     if (false === isValidKey(spreadsheetKey)) {
         console.log('Invalid key: %s', spreadsheetKey);
         return;
@@ -19,7 +18,7 @@ function fetchSpreadsheet(spreadsheetKey) {
         key: spreadsheetKey,
         callback: handleGSResponse,
         simpleSheet: false,
-        debug: true,
+        debug: false,
         parseNumbers: true
     };
     var tableTop = Tabletop.init(tabletopOptions);
@@ -45,14 +44,13 @@ function fetchSpreadsheet(spreadsheetKey) {
         json = json.replace(/(\r\n|\n|\r)/gm, '');
 
         var jsonp = config.callbackName + '(' + json + ')';
-        console.log('PUTing data up to S3...', spreadsheetKey);
-        putJSONP(jsonp, spreadsheetKey);
+        putJSONP(jsonp, spreadsheetKey, spreadsheet.cacheAge);
     }
 }
 
 function finish() {
     callbackCounter += 1;
-    if (callbackCounter === gsKeys.length) {
+    if (callbackCounter === spreadsheets.length) {
         process.exit(code=0);
     }
 }
@@ -62,21 +60,22 @@ var s3Client = knox.createClient({
     key:    config.accessKey,
     secret: config.secretKey,
     bucket: config.bucket,
-    region: 'eu-west-1'
+    region: config.region
 });
 
-function putJSONP(jsonpData, spreadsheetKey) {
+function putJSONP(jsonpData, spreadsheetKey, cacheAge) {
+    var cache = cacheAge || '60';
     var destFile = config.destFolder + spreadsheetKey + '.jsonp';
     var req = s3Client.put(destFile, {
         'Content-Length': Buffer.byteLength(jsonpData, 'utf8'),
         'Content-Type'  : 'application/javascript',
         'x-amz-acl'     : 'public-read',
-        'Cache-Control' : 'public, max-age=' + config.cacheAge,
+        'Cache-Control' : 'public, max-age=' + cache,
     });
 
     req.on('response', function(response) {
         if (200 === response.statusCode) {
-            console.log('Saved to %s', response.req.url);
+            //console.log('Saved to %s at %s', response.req.url, Date());
         } else {
             console.log('Failed to upload. Status: %d', response.statusCode);
         }
