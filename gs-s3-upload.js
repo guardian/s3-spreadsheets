@@ -36,9 +36,12 @@ function fetchSpreadsheet(spreadsheet) {
             return false;
         }
 
+        var feedName = (spreadsheet.name) ? spreadsheet.name : 'undefined';
+
         var jsonContent = {
             data: sheetData.all(),
-            updated: Date()
+            updated: Date(),
+            name: feedName
         };
         var json = JSON.stringify(jsonContent);
         json = json.replace(/(\r\n|\n|\r)/gm, '');
