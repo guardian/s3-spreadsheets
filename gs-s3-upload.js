@@ -1,10 +1,63 @@
 var config = require('./config.json');
 var knox = require('knox');
 var Tabletop = require('tabletop');
+var https = require('https');
 
+var spreadsheets = [];
 var callbackCounter = 0;
-var spreadsheets = config.spreadsheets;
-spreadsheets.map(fetchSpreadsheet);
+
+function fetchConfig() {
+    var path = '/feeds/list/' + config.spreadsheetsKey +  '/od6/public/values?alt=json';
+    var options = {
+        hostname: 'spreadsheets.google.com',
+        port: 443,
+        path: path,
+        method: 'GET'
+    };
+
+    var req = https.get(options, function(res) {
+        if (res.statusCode !== 200) {
+            console.log('Error: Request failed with status code %d', res.statusCode);
+            return;
+        }
+
+        var body = '';
+
+        res.on('data', function(chunk) {
+            body += chunk;
+        });
+
+        res.on('end', function() {
+            var responseObj = JSON.parse(body)
+            var entries = responseObj.feed.entry;
+            entries.forEach(processSpreadsheet);
+            spreadsheets.map(fetchSpreadsheet);
+        });
+    });
+
+    req.on('error', function(e) {
+        console.log("Got error: ", e);
+    });
+}
+
+fetchConfig();
+
+
+
+function processSpreadsheet(spreadsheet) {
+    if (spreadsheet.gsx$valid.$t === 'FALSE') {
+        console.log('Error: Skipping %s spreadsheet because invalid.', spreadsheet.gsx$name.$t);
+        return;
+    }
+
+    var sheet = {
+        name: spreadsheet.gsx$name.$t,
+        key: spreadsheet.gsx$key.$t,
+        cacheAge: spreadsheet.gsx$cache.$t
+    }
+
+    spreadsheets.push(sheet);
+}
 
 function fetchSpreadsheet(spreadsheet) {
     var spreadsheetKey = spreadsheet.key.trim();
@@ -73,7 +126,7 @@ function putJSONP(jsonpData, spreadsheetKey, cacheAge) {
         'Content-Length': Buffer.byteLength(jsonpData, 'utf8'),
         'Content-Type'  : 'application/javascript',
         'x-amz-acl'     : 'public-read',
-        'Cache-Control' : 'public, max-age=' + cache,
+        'Cache-Control' : 'public, max-age=' + cache
     });
 
     req.on('response', function(response) {
@@ -89,16 +142,6 @@ function putJSONP(jsonpData, spreadsheetKey, cacheAge) {
     req.end(jsonpData);
 }
 
-
 function isValidKey(key) {
-    if (key.length !== 44) {
-        return false;
-    }
-
-    // Only contain alphanumeric values
-    if (false === /^[\d\w]+$/.test(key)) {
-        return false;
-    }
-
-    return true;
+    return (key.length === 44 && (true === /^[\d\w]+$/.test(key)));
 }

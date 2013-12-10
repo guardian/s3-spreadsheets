@@ -1,16 +1,5 @@
 {
-    "spreadsheets"  : [
-        {
-            "name"      : "Name of the data feed",
-            "key"       : "xxxx",
-            "cacheAge"  : "120"
-        },
-        {
-            "name"      : "Example sports event feed",
-            "key"       : "xxxx",
-            "cacheAge"  : "60"
-        }
-    ],
+    "spreadsheetsKey" : "xxx",
     "callbackName"    : "sampleCallbackName",
     "accessKey"       : "",
     "secretKey"       : "",
