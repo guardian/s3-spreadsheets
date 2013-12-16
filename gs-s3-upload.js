@@ -45,7 +45,7 @@ fetchConfig();
 
 
 function processSpreadsheet(spreadsheet) {
-    if (spreadsheet.gsx$valid.$t === 'FALSE') {
+    if (!spreadsheet.gsx$valid || spreadsheet.gsx$valid.$t === 'FALSE') {
         console.log('Error: Skipping %s spreadsheet because invalid.', spreadsheet.gsx$name.$t);
         return;
     }
@@ -66,6 +66,7 @@ function fetchSpreadsheet(spreadsheet) {
         return;
     }
 
+
     // Fetch spreadsheet from Google
     var tabletopOptions = {
         key: spreadsheetKey,
@@ -77,11 +78,7 @@ function fetchSpreadsheet(spreadsheet) {
     var tableTop = Tabletop.init(tabletopOptions);
 
     function handleGSResponse(data, tabletop) {
-        var sheetName = 'data';
-        if (-1 === tabletop.model_names.indexOf('data')) {
-            sheetName = 'Sheet1';
-        }
-        var sheetData = tabletop.sheets(sheetName);
+        var sheetData = tabletop.sheets(tabletop.model_names[0]);
 
         if (typeof sheetData === 'undefined') {
             console.log('Could not access sheet "data" of %s', spreadsheetKey);
