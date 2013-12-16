@@ -78,18 +78,8 @@ function fetchSpreadsheet(spreadsheet) {
     var tableTop = Tabletop.init(tabletopOptions);
 
     function handleGSResponse(data, tabletop) {
-        var sheetData = tabletop.sheets(tabletop.model_names[0]);
-
-        if (typeof sheetData === 'undefined') {
-            console.log('Could not access sheet "data" of %s', spreadsheetKey);
-            finish();
-            return false;
-        }
-
         var feedName = (spreadsheet.name) ? spreadsheet.name : 'undefined';
-
         var jsonContent = {
-            data: sheetData.all(),
             sheets: {},
             updated: Date(),
             name: feedName
