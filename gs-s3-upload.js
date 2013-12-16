@@ -90,9 +90,15 @@ function fetchSpreadsheet(spreadsheet) {
 
         var jsonContent = {
             data: sheetData.all(),
+            sheets: {},
             updated: Date(),
             name: feedName
         };
+
+        tabletop.model_names.forEach(function(modelName) {
+            jsonContent.sheets[modelName] = tabletop.sheets(modelName).all();
+        });
+
         var json = JSON.stringify(jsonContent);
         json = json.replace(/(\r\n|\n|\r)/gm, '');
 
@@ -140,5 +146,5 @@ function putJSONP(jsonpData, spreadsheetKey, cacheAge) {
 }
 
 function isValidKey(key) {
-    return (key.length === 44 && (true === /^[\d\w]+$/.test(key)));
+    return (key.length === 44 && (true === /^[\d\w-]+$/.test(key)));
 }
