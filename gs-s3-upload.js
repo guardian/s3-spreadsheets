@@ -76,8 +76,6 @@ var s3Client = knox.createClient({
 });
 
 function putJSONP(jsonpData, spreadsheetKey, cacheAge) {
-    console.log(jsonpData, spreadsheetKey);
-    return;
     var cache = cacheAge || '60';
     var destFile = config.destFolder + spreadsheetKey + '.jsonp';
     var req = s3Client.put(destFile, {
