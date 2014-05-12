@@ -6,37 +6,11 @@ var https = require('https');
 var spreadsheets = [];
 var callbackCounter = 0;
 
-function fetchConfig() {
-    var path = '/feeds/list/' + config.spreadsheetsKey +  '/od6/public/values?alt=json';
-    var options = {
-        hostname: 'spreadsheets.google.com',
-        port: 443,
-        path: path,
-        method: 'GET'
-    };
-
-    var req = https.get(options, function(res) {
-        if (res.statusCode !== 200) {
-            console.log('Error: Request failed with status code %d', res.statusCode);
-            return;
-        }
-
-        var body = '';
-
-        res.on('data', function(chunk) {
-            body += chunk;
-        });
-
-        res.on('end', function() {
-            var responseObj = JSON.parse(body)
-            var entries = responseObj.feed.entry;
-            entries.forEach(processSpreadsheet);
-            spreadsheets.map(fetchSpreadsheet);
-        });
-    });
-
-    req.on('error', function(e) {
-        console.log("Got error: ", e);
+function fetchConfig(callback) {
+    var tabletop = Tabletop.init({
+        key: config.spreadsheetsKey,
+        callback: processSpreadsheet,
+        simpleSheet: true
     });
 }
 
@@ -44,19 +18,8 @@ fetchConfig();
 
 
 
-function processSpreadsheet(spreadsheet) {
-    if (!spreadsheet.gsx$valid || spreadsheet.gsx$valid.$t === 'FALSE') {
-        console.log('Error: Skipping %s spreadsheet because invalid.', spreadsheet.gsx$name.$t);
-        return;
-    }
-
-    var sheet = {
-        name: spreadsheet.gsx$name.$t,
-        key: spreadsheet.gsx$key.$t,
-        cacheAge: spreadsheet.gsx$cache.$t
-    }
-
-    spreadsheets.push(sheet);
+function processSpreadsheet(data, tabletop) {
+    data.map(fetchSpreadsheet);
 }
 
 function fetchSpreadsheet(spreadsheet) {
@@ -113,6 +76,8 @@ var s3Client = knox.createClient({
 });
 
 function putJSONP(jsonpData, spreadsheetKey, cacheAge) {
+    console.log(jsonpData, spreadsheetKey);
+    return;
     var cache = cacheAge || '60';
     var destFile = config.destFolder + spreadsheetKey + '.jsonp';
     var req = s3Client.put(destFile, {
