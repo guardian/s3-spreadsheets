@@ -25,7 +25,7 @@ function put(data, callback) {
       ACL: 'public-read',
       ContentLength: Buffer.byteLength(data.json, 'utf8'),
       ContentType: data.contentType,
-      CacheControl: 'max-age=60,public'
+      CacheControl: data.cacheControl 
     };
 
    s3.putObject(s3Data, function(err, d) {

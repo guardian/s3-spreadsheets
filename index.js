@@ -65,12 +65,12 @@ function uploadSheet(data, callback) {
  */
 function createUploadData(data, callback) {
   var spreadsheetName = (data.sheet.name) ? data.sheet.name : 'undefined';
-  var cacheAge = data.sheet.cacheage;
+  var cacheControl = 'max-age=' + (data.sheet.cacheage || '60') + ', public';
   var json = createJSON(data.tabletop, spreadsheetName);
   var uploadData = {
     json: json,
     filename: data.sheet.key + '.json',
-    cacheAge: data.sheet.cacheage || '60',
+    cacheControl: cacheControl,
     contentType: 'application/json'
   };
 
