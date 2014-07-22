@@ -1,6 +1,7 @@
 var async = require('async');
 var gSpreadsheet = require('./googleSpreadsheet');
 var s3 = require('./s3');
+var CronJob = require('cron').CronJob;
 var config = require('./config.json');
 
 /**
@@ -112,6 +113,21 @@ function fetchSheet(sheet, callback) {
   });
 }
 
-// Start the whole process off by fetching the master spreadsheet
-gSpreadsheet.fetch(config.masterKey, parseMastersheet);
+
+/**
+ * Action to run on every cron tick
+ */
+function cronTickAction() {
+    gSpreadsheet.fetch(config.masterKey, parseMastersheet);
+}
+
+// Start a schedualed fetch and upload of all spreadsheets
+// Once every minute
+var cronJob = new CronJob({
+  cronTime: '00 * * * * *',
+  onTick: cronTickAction,
+  start: false
+});
+
+cronJob.start();
 
