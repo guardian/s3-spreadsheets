@@ -1,7 +1,8 @@
-Google Spreadsheet to S3 cron task
+# Google Spreadsheet to JSON S3
 
-DESCRIPTION
-    gs-s3-upload will fetch Google spreadsheet data and upload it to a S3 bucket.
+## Description
+Fetch a list of public spreadsheets, fetch each one, convert them to JSON and 
+upload the resulting files to S3.
 
-USAGE
-    Files are stored by default on
+## Usage
+    `node index`

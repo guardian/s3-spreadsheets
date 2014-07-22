@@ -1,11 +1,11 @@
-var knox = require('knox');
+//var knox = require('knox');
+var AWS = require('aws-sdk');
 var config = require('./config.json');
-
-var s3Client = knox.createClient({
-    key:    config.accessKey,
-    secret: config.secretKey,
-    bucket: config.bucket,
-    region: config.region
+var s3 = new AWS.S3({
+  params: {
+    Bucket: config.bucket,
+    region: config.region,
+  }
 });
 
 /**
@@ -19,23 +19,18 @@ var s3Client = knox.createClient({
  */
 function put(data, callback) {
     var destFile = config.destFolder + data.filename;
-    var req = s3Client.put(destFile, {
-        'Content-Length': Buffer.byteLength(data.json, 'utf8'),
-        'Content-Type'  : data.contentType,
-        'x-amz-acl'     : 'public-read',
-        'Cache-Control' : 'max-age=' + data.cacheAge + ', public'
-    });
+    var s3Data = {
+      Key: destFile,
+      Body: data.json,
+      ACL: 'public-read',
+      ContentLength: Buffer.byteLength(data.json, 'utf8'),
+      ContentType: data.contentType,
+      CacheControl: 'max-age=60,public'
+    };
 
-    req.on('response', function(response) {
-        if (200 === response.statusCode) {
-          callback(null);
-        } else {
-          callback('Failed to upload. Status: %d', response.statusCode);
-        }
-
-    });
-
-    req.end(data.json);
+   s3.putObject(s3Data, function(err, d) {
+      return callback(err);
+   });
 }
 
 module.exports = {
