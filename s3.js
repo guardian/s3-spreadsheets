@@ -23,32 +23,19 @@ function put(data, callback) {
       Bucket           : config.bucket,
       Key              : filename,
       ACL              : 'public-read',
-      //ContentLength    : Buffer.byteLength(data.body, 'utf8'),
       ContentType      : data.contentType,
       CacheControl     : data.cacheControl,
       ContentEncoding  : 'gzip'
     };
 
-    console.log('putting ' + filename);
-
     zlib.gzip(data.body, function(err, buffer) {
-      console.log('Zipping data', err);
       if (err) return callback(err);
-
       params.Body = buffer;
 
       s3.putObject(params, function(err) {
-        console.log('S3 upload', err);
         return callback(err);
       });
     });
-   
-   /*
-   s3.putObject(s3Data, function(err, d) {
-      return callback(err);
-   });
-
-   */
 }
 
 module.exports = {
