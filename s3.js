@@ -1,14 +1,18 @@
 var zlib = require('zlib');
 var AWS = require('aws-sdk');
-var config = require('./config.json');
+
+try {
+  var config = require('./config.json');
+} catch(err) {
+  console.log('Missing config.json. Use sample-config.json as a reference.');
+}
+
 var s3 = new AWS.S3({
-  params: {
-    Bucket          : config.bucket,
     region          : config.region,
     accessKeyId     : config.accessKey,
     secretAccessKey : config.secretKey
-  }
 });
+
 
 /**
  * PUT data into the S3 bucket
@@ -22,6 +26,7 @@ var s3 = new AWS.S3({
 function put(data, callback) {
     var filename = config.destFolder + data.filename;
     var params = {
+      Bucket          : config.bucket,
       Key              : filename,
       ACL              : 'public-read',
       ContentType      : data.contentType,

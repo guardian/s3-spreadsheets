@@ -2,7 +2,12 @@ var async = require('async');
 var gSpreadsheet = require('./googleSpreadsheet');
 var s3 = require('./s3');
 var CronJob = require('cron').CronJob;
-var config = require('./config.json');
+
+try {
+  var config = require('./config.json');
+} catch(err) {
+  console.log('Missing config.json. Use sample-config.json as a reference.');
+}
 
 /**
  * Handle the returned master spreadsheet data
@@ -154,5 +159,6 @@ var cronJob = new CronJob({
   start: false
 });
 
-cronJob.start();
+//cronJob.start();
+cronTickAction()
 

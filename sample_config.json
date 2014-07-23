@@ -4,6 +4,6 @@
     "accessKey"       : "",
     "secretKey"       : "",
     "bucket"          : "your-bucket-name",
-    "region"          : "s3.amazonaws.com",
+    "region"          : "us-east-1",
     "destFolder"      : "your/destination/path/"
 }
