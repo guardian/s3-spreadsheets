@@ -46,7 +46,6 @@ function parseSheets(err, sheets) {
 function uploadSheets(sheets) {
   async.each(sheets, uploadSheet, function(err) {
     if (err) return console.error(err);
-    console.log('Finished uploading ' + sheets.length + ' sheets');
   });
 }
 

@@ -1,9 +1,9 @@
 {
-    "spreadsheetsKey" : "xxx",
+    "masterKey" : "xxx",
     "callbackName"    : "sampleCallbackName",
     "accessKey"       : "",
     "secretKey"       : "",
     "bucket"          : "your-bucket-name",
-    "region"          : "eu-west-1",
-    "destFolder"      : "/your/destination/path/"
+    "region"          : "s3.amazonaws.com",
+    "destFolder"      : "your/destination/path/"
 }

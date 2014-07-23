@@ -20,7 +20,6 @@ var s3 = new AWS.S3({
 function put(data, callback) {
     var filename = config.destFolder + data.filename;
     var params = {
-      Bucket           : config.bucket,
       Key              : filename,
       ACL              : 'public-read',
       ContentType      : data.contentType,
