@@ -130,6 +130,18 @@ function createJSONP(json) {
   return config.callbackName + '(' + json + ');';
 }
 
+
+/**
+ * Test if key is a valid Google spreadsheet key
+ *
+ * @param key {string} - Google spreadsheet key
+ * @returns {boolean} - Valid status
+ */
+function isValidKey(key) {
+  return (key.length === 44 && (true === /^[\d\w-]+$/.test(key)));
+}
+
+
 /**
  * Fetch a single sheet from Google
  *
@@ -138,6 +150,11 @@ function createJSONP(json) {
  * @param callback {function} - Async callback on completion
  */
 function fetchSheet(sheet, callback) {
+  // Check sheet has a valid key
+  if (isValidKey(sheet.key) === false) {
+    return callback('Spreadsheet key is invalid: ' + sheet.key);
+  }
+
   gSpreadsheet.fetch(sheet.key, function(data, tabletop) {
     callback(null, {sheet: sheet, tabletop: tabletop});
   });
