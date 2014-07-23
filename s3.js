@@ -3,8 +3,10 @@ var AWS = require('aws-sdk');
 var config = require('./config.json');
 var s3 = new AWS.S3({
   params: {
-    Bucket: config.bucket,
-    region: config.region,
+    Bucket          : config.bucket,
+    region          : config.region,
+    accessKeyId     : config.accessKey,
+    secretAccessKey : config.secretKey
   }
 });
 
