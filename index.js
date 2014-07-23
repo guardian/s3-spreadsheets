@@ -23,19 +23,30 @@ function parseMastersheet(data, tabletop) {
  */
 function parseSheets(err, sheets) {
   if (err) return console.error(err);
-  async.map(sheets, createUploadData, uploadSheets);
+  
+  // Create JSON files
+  var uploadData = sheets.map(function(sheet) {
+    return createUploadData(sheet, false);
+  });
+
+  // Append JSONP files
+  uploadData = uploadData.concat(sheets.map(function(sheet) {
+    return createUploadData(sheet, true);
+  }));
+
+  // Upload all files
+  uploadSheets(uploadData);
 }
 
 /**
  * Upload all spreadsheets to S3
  *
- * @param err {null|string} - aync error response
  * @param sheets {array} - Sheets to be uploaded to S3
  */
-function uploadSheets(err, sheets) {
-  if (err) return console.error(err);
+function uploadSheets(sheets) {
   async.each(sheets, uploadSheet, function(err) {
     if (err) return console.error(err);
+    console.log('Finished uploading ' + sheets.length + ' sheets');
   });
 }
 
@@ -61,20 +72,24 @@ function uploadSheet(data, callback) {
  * @param data.sheet.cacheage {string} - Cache age
  * @param data.sheet.key {string} - Google spreadsheet key
  * @param data.tabletop {object} - Tabletop instance
- * @param callback {function} - Async callback on completion
+ * @param isJSONP {boolean} - Wrap the JSON in a JSONP or not
  */
-function createUploadData(data, callback) {
+function createUploadData(data, isJSONP) {
   var spreadsheetName = (data.sheet.name) ? data.sheet.name : 'undefined';
   var cacheControl = 'max-age=' + (data.sheet.cacheage || '60') + ', public';
-  var json = createJSON(data.tabletop, spreadsheetName);
-  var uploadData = {
-    json: json,
-    filename: data.sheet.key + '.json',
-    cacheControl: cacheControl,
-    contentType: 'application/json'
-  };
+  var body = createJSON(data.tabletop, spreadsheetName);
+  
+  if (isJSONP) {
+    body = createJSONP(body);
+  }
 
-  callback(null, uploadData);
+  return {
+    body: body,
+    filename: data.sheet.key + ((isJSONP) ? '.jsonp' : '.json'),
+    cacheControl: cacheControl,
+    contentType: (isJSONP) ? 'application/javascript' : 'application/json'
+  };
+  
 }
 
 /**
@@ -98,6 +113,17 @@ function createJSON(tabletop, spreadsheetName) {
   var json = JSON.stringify(jsonContent);
   json = json.replace(/(\r\n|\n|\r)/gm, '');
   return json;
+}
+
+
+/**
+ * Wrap JSON string in a function call creating a JSONP string
+ *
+ * @param json {string} - JSON string to wrap
+ * @returns {string} - JSONP string
+ */
+function createJSONP(json) {
+  return config.callbackName + '(' + json + ');';
 }
 
 /**
@@ -129,5 +155,6 @@ var cronJob = new CronJob({
   start: false
 });
 
-cronJob.start();
+//cronJob.start();
+cronTickAction()
 

@@ -21,9 +21,9 @@ function put(data, callback) {
     var destFile = config.destFolder + data.filename;
     var s3Data = {
       Key: destFile,
-      Body: data.json,
+      Body: data.body,
       ACL: 'public-read',
-      ContentLength: Buffer.byteLength(data.json, 'utf8'),
+      ContentLength: Buffer.byteLength(data.body, 'utf8'),
       ContentType: data.contentType,
       CacheControl: data.cacheControl 
     };
