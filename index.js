@@ -176,6 +176,4 @@ var cronJob = new CronJob({
   start: false
 });
 
-//cronJob.start();
-cronTickAction()
-
+cronJob.start();
