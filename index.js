@@ -80,9 +80,9 @@ function uploadSheet(data, callback) {
  */
 function createUploadData(data, isJSONP) {
   var spreadsheetName = (data.sheet.name) ? data.sheet.name : 'undefined';
+  var sheets = (data.sheet.specificsheets === "") ? [] : data.sheet.specificsheets.split(',');
   var cacheControl = 'max-age=' + (data.sheet.cacheage || '60') + ', public';
-  var body = createJSON(data.tabletop, spreadsheetName);
-  
+  var body = createJSON(data.tabletop, spreadsheetName, sheets);
   if (isJSONP) {
     body = createJSONP(body);
   }
@@ -101,18 +101,29 @@ function createUploadData(data, isJSONP) {
  *
  * @param tabletop {object} - Tabletop instance
  * @param spreadsheetName {string} - Name of the spreadsheet
+ * @param sheets {array} - Specific sheets to return
  * @returns {object} - Data for uploading containing JSON string
  */
-function createJSON(tabletop, spreadsheetName) {
+function createJSON(tabletop, spreadsheetName, sheets) {
   var jsonContent = {
       sheets: {},
       updated: Date(),
       name: spreadsheetName
   };
 
-  tabletop.model_names.forEach(function(modelName) {
-      jsonContent.sheets[modelName] = tabletop.sheets(modelName).all();
-  });
+  // Return only specific sheets or all sheets
+  if (sheets.length > 0) {
+    sheets.forEach(function(sheetName) {
+        var sheet = sheetName.trim();
+        if (tabletop.model_names.indexOf(sheet) > -1) {
+            jsonContent.sheets[sheet] = tabletop.sheets(sheet).all();
+        }
+    });
+  } else {
+      tabletop.model_names.forEach(function(modelName) {
+          jsonContent.sheets[modelName] = tabletop.sheets(modelName).all();
+      });
+  }
 
   var json = JSON.stringify(jsonContent);
   json = json.replace(/(\r\n|\n|\r)/gm, '');
