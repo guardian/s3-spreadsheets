@@ -166,6 +166,10 @@ function fetchSheet(sheet, callback) {
     return callback('Spreadsheet key is invalid: ' + sheet.key);
   }
 
+  if (!sheet.valid || sheet.valid !== "TRUE") {
+    return callback('Spreadsheet valid status is not "TRUE": ' + sheet.key);
+  }
+
   gSpreadsheet.fetch(sheet.key, function(data, tabletop) {
     callback(null, {sheet: sheet, tabletop: tabletop});
   });
