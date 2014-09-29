@@ -28,6 +28,9 @@ function parseMastersheet(data, tabletop) {
  */
 function parseSheets(err, sheets) {
   if (err) return console.error(err);
+
+  // Filter out null sheets
+  sheets = sheets.filter(function(sheet) { return sheet !== null; });
   
   // Create JSON files
   var uploadData = sheets.map(function(sheet) {
@@ -163,11 +166,13 @@ function isValidKey(key) {
 function fetchSheet(sheet, callback) {
   // Check sheet has a valid key
   if (isValidKey(sheet.key) === false) {
-    return callback('Spreadsheet key is invalid: ' + sheet.key);
+    console.log('Spreadsheet key is invalid: ' + sheet.key);
+    return callback(null, null);
   }
 
   if (!sheet.valid || sheet.valid !== "TRUE") {
-    return callback('Spreadsheet valid status is not "TRUE": ' + sheet.key);
+    console.log('Spreadsheet valid status is not "TRUE": ' + sheet.key);
+    return callback(null, null);
   }
 
   gSpreadsheet.fetch(sheet.key, function(data, tabletop) {
