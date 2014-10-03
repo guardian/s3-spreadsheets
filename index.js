@@ -208,7 +208,11 @@ function outputStatusFile() {
         filename: 'status.txt',
         cacheControl: 'no-cache',
         contentType: 'text/plain'
-    }, function(err) { console.log(err); });
+    }, function(err) {
+        if (err) {
+            console.log('Error writing status', err);
+        }
+    });
 }
 
 function start() {
