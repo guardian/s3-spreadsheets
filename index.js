@@ -39,7 +39,9 @@ function parseSheets(err, sheets) {
 
     // Filter out null sheets
     sheets = sheets.filter(function(sheet) { return sheet !== null; });
-  
+    sheets = sheets.filter(function(sheet) { return sheet.sheet.valid === 'TRUE'; });
+    sheets = sheets.filter(function(sheet) { return isValidKey(sheet.sheet.key) === true; });
+
     // Create JSON files
     var uploadData = sheets.map(function(sheet) {
         return createUploadData(sheet, false);
@@ -151,19 +153,6 @@ function isValidKey(key) {
  * @param callback {function} - Async callback on completion
  */
 function fetchSheet(sheet, callback) {
-    // Check sheet has a valid key
-    if (isValidKey(sheet.key) === false) {
-        console.log('Spreadsheet key is invalid: ' + sheet.key);
-        updateStatus('ERROR - Sheet key is invalid - ' + sheet.key);
-        return callback(null, null);
-    }
-
-    if (!sheet.valid || sheet.valid !== "TRUE") {
-        console.log('Spreadsheet valid status is not "TRUE": ' + sheet.key);
-        updateStatus('ERROR - Sheet valid status != "TRUE" - ' + sheet.key);
-        return callback(null, null);
-    }
-
     gSpreadsheet.fetch(sheet.key, function(data, tabletop) {
         updateStatus('Fetched - ' + sheet.key);
         callback(null, {sheet: sheet, tabletop: tabletop});
@@ -206,11 +195,20 @@ function updateStatus(msg) {
 }
 
 function outputStatusFile() {
+    // Write file locally
     fs.writeFile(statusFile, statusText, function(err) {
         if (err) {
             console.log('ERROR writing status file', err);
         }
     });
+
+    // Put file on S3
+    s3.put({
+        body: statusText,
+        filename: 'status.txt',
+        cacheControl: 'no-cache',
+        contentType: 'text/plain'
+    }, function(err) { console.log(err); });
 }
 
 function start() {
