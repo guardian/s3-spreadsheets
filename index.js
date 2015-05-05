@@ -2,6 +2,7 @@ var async = require('async');
 var gSpreadsheet = require('./googleSpreadsheet');
 var s3 = require('./s3');
 var fs = require('fs');
+var domain = require('domain');
 
 try {
   var config = require('./config.json');
@@ -11,6 +12,7 @@ try {
 
 var statusFile = './status.txt';
 var statusText;
+var ASYNC_LIMIT = 5; // Limit the number of async requests
 var FETCH_DELEY = 60 * 1000; // Wait for one minute
 var startTime;
 var endTime;
@@ -25,7 +27,7 @@ function parseMastersheet(data, tabletop) {
     // TODO: Handle mastersheet parse error
     var spreadsheets = tabletop.sheets('data').all();
     updateStatus('Got mastersheet. Spreadsheet count = ' + spreadsheets.length);
-    async.map(spreadsheets, fetchSheet, parseSheets); 
+    async.mapLimit(spreadsheets, ASYNC_LIMIT, fetchSheet, parseSheets); 
 }
 
 /**
@@ -37,13 +39,15 @@ function parseMastersheet(data, tabletop) {
 function parseSheets(err, sheets) {
     if (err) return console.error(err);
 
-    // Filter out null sheets
-    sheets = sheets.filter(function(sheet) { return sheet !== null; });
-    sheets = sheets.filter(function(sheet) { return sheet.sheet.valid === 'TRUE'; });
-    sheets = sheets.filter(function(sheet) { return isValidKey(sheet.sheet.key) === true; });
+    // Filter out errors in sheets
+    var validSheets = sheets.filter(function(sheet) {
+        if (sheet && isValidKey(sheet.sheet.key) === true) {
+            return true;
+        }
+    });
 
     // Create JSON files
-    var uploadData = sheets.map(function(sheet) {
+    var uploadData = validSheets.map(function(sheet) {
         return createUploadData(sheet, false);
     });
 
@@ -57,7 +61,7 @@ function parseSheets(err, sheets) {
  * @param sheets {array} - Sheets to be uploaded to S3
  */
 function uploadSheets(sheets) {
-    async.each(sheets, uploadSheet, finished);
+    async.eachLimit(sheets, ASYNC_LIMIT, uploadSheet, finished);
 }
 
 /**
@@ -153,9 +157,18 @@ function isValidKey(key) {
  * @param callback {function} - Async callback on completion
  */
 function fetchSheet(sheet, callback) {
-    gSpreadsheet.fetch(sheet.key, function(data, tabletop) {
-        updateStatus('Fetched - ' + sheet.key);
-        callback(null, {sheet: sheet, tabletop: tabletop});
+    var d = domain.create();
+
+    d.on('error', function(err) {
+        updateStatus('!!ERROR - '+sheet.key+' "'+sheet.name+'": "'+err.message+'"');
+        callback();
+    });
+
+    d.run(function() {
+        gSpreadsheet.fetch(sheet.key, function(data, tabletop) {
+            updateStatus('Fetched - ' + sheet.key);
+            callback(null, {sheet: sheet, tabletop: tabletop});
+        });
     });
 }
 
@@ -171,21 +184,20 @@ function finished(err) {
 
     // Log warning if process it taking too long
     if (timeTaken >= FETCH_DELEY) {
-        console.log(Date() +' WARNING: Process taking a long time: ' + timeTaken);
-        updateStatus('WARNING: Process taking a long time: ' + timeTaken);
+        updateStatus('WARNING: Process taking a long time: ' + timeTaken/1000 + s);
     }
 
     var delay = FETCH_DELEY - timeTaken;
     updateStatus('Next fetch in ' + delay / 1000 + 's');
 
-    // Check if last fetch took longer than delay and force instance fetch
+    // Check if last fetch took longer than delay and force instant fetch
     if (delay < 0) {
         start();
     } else {
         setTimeout(start, delay); 
     }
 
-    updateStatus('Finished in ' + timeTaken / 1000 + 's');
+    updateStatus('Finished in ' + (timeTaken / 1000) + 's');
     outputStatusFile();
 }
 
