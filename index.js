@@ -10,12 +10,13 @@ try {
   console.log('Missing config.json. Use sample-config.json as a reference.');
 }
 
+var FETCH_TIMEOUT = 50 * 1000;
+var FETCH_DELEY = 60 * 1000; // Wait for one minute
 var statusFile = './status.txt';
 var statusText;
-var ASYNC_LIMIT = 5; // Limit the number of async requests
-var FETCH_DELEY = 60 * 1000; // Wait for one minute
 var startTime;
 var endTime;
+var timeoutID;
 
 /**
  * Handle the returned master spreadsheet data
@@ -27,7 +28,7 @@ function parseMastersheet(data, tabletop) {
     // TODO: Handle mastersheet parse error
     var spreadsheets = tabletop.sheets('data').all();
     updateStatus('Got mastersheet. Spreadsheet count = ' + spreadsheets.length);
-    async.mapLimit(spreadsheets, ASYNC_LIMIT, fetchSheet, parseSheets); 
+    async.map(spreadsheets, fetchSheet, parseSheets);
 }
 
 /**
@@ -38,19 +39,21 @@ function parseMastersheet(data, tabletop) {
  */
 function parseSheets(err, sheets) {
     if (err) return console.error(err);
-
+    
     // Filter out errors in sheets
     var validSheets = sheets.filter(function(sheet) {
-        if (sheet && isValidKey(sheet.sheet.key) === true) {
+        if (sheet &&
+            sheet.hasOwnProperty('sheet') &&
+            isValidKey(sheet.sheet.key) === true) {
             return true;
         }
     });
-
+        
     // Create JSON files
     var uploadData = validSheets.map(function(sheet) {
         return createUploadData(sheet, false);
     });
-
+    
     // Upload all files
     uploadSheets(uploadData);
 }
@@ -61,7 +64,7 @@ function parseSheets(err, sheets) {
  * @param sheets {array} - Sheets to be uploaded to S3
  */
 function uploadSheets(sheets) {
-    async.eachLimit(sheets, ASYNC_LIMIT, uploadSheet, finished);
+    async.each(sheets, uploadSheet, finished);
 }
 
 /**
@@ -158,18 +161,30 @@ function isValidKey(key) {
  */
 function fetchSheet(sheet, callback) {
     var d = domain.create();
-
+    var done = false;
+    
     d.on('error', function(err) {
+        if (done) return;           
+        done = true;
         updateStatus('!!ERROR - '+sheet.key+' "'+sheet.name+'": "'+err.message+'"');
-        callback();
-    });
-
+        callback(null, false);
+    });    
+    
     d.run(function() {
         gSpreadsheet.fetch(sheet.key, function(data, tabletop) {
+            if (done) return;           
+            done = true;
             updateStatus('Fetched - ' + sheet.key);
             callback(null, {sheet: sheet, tabletop: tabletop});
         });
-    });
+        
+        setTimeout(function() {
+            if (done) return;           
+            done = true;
+            updateStatus('!!ERROR - '+sheet.key+' "'+sheet.name+'": "TIMED OUT"');
+            callback(null, false);;
+        }, FETCH_TIMEOUT);
+    });       
 }
 
 
@@ -178,27 +193,27 @@ function finished(err) {
     if (err) {
         console.error(Date() + 'Error: ', err);
     }
-    
+           
     var endTime = new Date();
     var timeTaken = endTime - startTime;
 
     // Log warning if process it taking too long
     if (timeTaken >= FETCH_DELEY) {
-        updateStatus('WARNING: Process taking a long time: ' + timeTaken/1000 + s);
+        updateStatus('WARNING: Process taking a long time: ' + timeTaken/1000 + 's');
     }
 
     var delay = FETCH_DELEY - timeTaken;
     updateStatus('Next fetch in ' + delay / 1000 + 's');
-
+    updateStatus('Finished in ' + (timeTaken / 1000) + 's');
+    outputStatusFile();
+    
+    clearTimeout(timeoutID);
     // Check if last fetch took longer than delay and force instant fetch
     if (delay < 0) {
         start();
     } else {
-        setTimeout(start, delay); 
+        timeoutID = setTimeout(start, delay); 
     }
-
-    updateStatus('Finished in ' + (timeTaken / 1000) + 's');
-    outputStatusFile();
 }
 
 
